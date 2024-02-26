@@ -48,27 +48,53 @@ async function initializeDbAndServer() {
 initializeDbAndServer()
 
 // Route to fetch all todos
-app.get('/todos/', async (req, res) => {
-  const {status, priority, search_q} = req.query
+app.get("/todos/", async (request, response) => {
+  let data = null;
+  let getTodosQuery = "";
+  const { search_q = "", priority, status } = request.query;
 
-  let query = 'SELECT * FROM todo'
-
-  if (status !== undefined) {
-    query += ` WHERE status='${status}'`
+  if (status !== undefined && priority !== undefined) {
+    getTodosQuery = `
+      SELECT
+        *
+      FROM
+        todo 
+      WHERE
+        todo LIKE '%${search_q}%'
+        AND status = '${status}'
+        AND priority = '${priority}';`;
   } else if (priority !== undefined) {
-    query += ` WHERE priority='${priority}'`
-  } else if (search_q !== undefined) {
-    query += ` WHERE todo LIKE '%${search_q}%'`
+    getTodosQuery = `
+      SELECT
+        *
+      FROM
+        todo 
+      WHERE
+        todo LIKE '%${search_q}%'
+        AND priority = '${priority}';`;
+  } else if (status !== undefined) {
+    getTodosQuery = `
+      SELECT
+        *
+      FROM
+        todo 
+      WHERE
+        todo LIKE '%${search_q}%'
+        AND status = '${status}';`;
+  } else {
+    getTodosQuery = `
+      SELECT
+        *
+      FROM
+        todo 
+      WHERE
+        todo LIKE '%${search_q}%';`;
   }
 
-  try {
-    const todos = await db.all(query)
-    res.json(todos)
-  } catch (err) {
-    console.error(`Error fetching todos: ${err.message}`)
-    res.status(500).json({error: 'Internal Server Error'})
-  }
-})
+  data = await database.all(getTodosQuery);
+  response.send(data);
+});
+
 
 // Route to fetch a specific todo by ID
 app.get('/todos/:todoId/', async (req, res) => {
